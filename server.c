@@ -4,13 +4,14 @@
 
 int new_serv(){
     int ret_val=1;
-    int serv_exist = shm_open(SHM_SERV,O_RDONLY,0666);
+    int serv_exist = shm_open(SHM_SERV,O_RDWR,0600);
     if(serv_exist != -1){
         struct data_t* asd = (struct data_t*)mmap(NULL, sizeof(struct data_t), PROT_READ | PROT_WRITE, MAP_SHARED, serv_exist, 0);
 //        wprintw(consola,"pid=",asd->pid);
 //        wrefresh(consola);
-        if(asd == (void*)-1 ) {
-            ret_val = 0;
+        if(asd != (void*)-1 ) {
+            if(kill(asd->pid,0) == 0)
+                ret_val = 0;
         }
         else del();
         munmap(asd,sizeof(struct data_t));

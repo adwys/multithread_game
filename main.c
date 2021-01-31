@@ -2,7 +2,7 @@
 
 
 int main(int argc,char ** argv){
-    del();
+//    del();
     initscr();
     noecho();
     cbreak();
