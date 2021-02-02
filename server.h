@@ -22,13 +22,14 @@
 #define PAYLOAD_SIZE 1024
 #define SHM_SERV "/msg_data"
 #define COMMON_SEMAPHORE_NAME "/sem"
-#define COMMON_MAP_FILE "/map.txt"
+#define GAME_MAP_FILE "../map.txt"
 WINDOW* board;
 WINDOW* consola;
 int x,y;
 sem_t* nc;
 struct data_t {
-    sem_t cs; // sekcja krytyczna
+    sem_t cs;
+    sem_t take;
     int id;
     int pid;
     char payload;
@@ -41,6 +42,8 @@ static void err(int c, const char* msg) {
     perror(msg);
     exit(1);
 };
+void make_move(struct data_t* pdata, int my_id, sem_t* sem);
+void take(struct data_t* pdata,sem_t* sem,int turn);
 int printl(WINDOW *win,const char* fmt, ...);
 int new_serv();
 void *server_thr();

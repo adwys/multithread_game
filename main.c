@@ -17,8 +17,9 @@ int main(int argc,char ** argv){
     if(new_serv()){
         wprintw(consola,"Starting server\n");
         pthread_create(&Server,NULL,&server_thr,NULL);
+//        pthread_join(Server,NULL);
     }
-    sleep(5);
+    sleep(3);
     int canconn = -1;
     for(int i=0;i<3;i++){
         if(canconn == -1)
@@ -38,7 +39,7 @@ int main(int argc,char ** argv){
 
     pthread_create(&Client,NULL,&client_thr,NULL);
 
-    getchar();
+    while (1);
     del();
     return 0;
 }

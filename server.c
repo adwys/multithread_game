@@ -10,8 +10,11 @@ int new_serv(){
 //        wprintw(consola,"pid=",asd->pid);
 //        wrefresh(consola);
         if(asd != (void*)-1 ) {
-            if(kill(asd->pid,0) == 0)
+//            int x =kill(asd->pid,0)
+            if(kill(asd->pid,0) == 0) {
+                wprintw(consola, "pid servera=%d", asd->pid);
                 ret_val = 0;
+            }
         }
         else del();
         munmap(asd,sizeof(struct data_t));
@@ -36,18 +39,21 @@ void *server_thr(){
     struct data_t* pdata = (struct data_t*)mmap(NULL, sizeof(struct data_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     err(pdata == NULL, "mmap");
     pdata->pid = getpid();
-    sem_init(&pdata->cs, 1, 1); // shared, signaled
+    sem_init(&pdata->cs, 1, 1);
+    sem_init(&pdata->take,1,1);
 //    printf("Gotowe, czekam na klienta; pdata=%p...,pdata->pid\n", pdata);
     wprintw(consola,"Gotowe, czekam na klienta; pdata=%p...,pdata->pid\n", pdata);
     wrefresh(consola);
     while(1){
-//        if(getchar() == 'q')break;
+        take(pdata,sem,0);
+        if(getchar() == 'q')break;
+        wrefresh(consola);
     }
 
     return NULL;
 }
 void *client_thr(){
-    wprintw(consola,"Client thread started");
+    wprintw(consola,"Client thread started\n");
     wrefresh(consola);
     sem_t* sem = sem_open(COMMON_SEMAPHORE_NAME, 0);
     err(sem == SEM_FAILED, "sem_open");
@@ -60,17 +66,54 @@ void *client_thr(){
 
     srand(time(NULL));
     int my_id = rand() % 1000;
-    printf("Identyfikator sesji: %d; pdata=%p......\n", my_id, pdata);
+    wprintw(consola,"Identyfikator sesji: %d; pdata=%p......\nserver pid=%d\n", my_id, pdata,pdata->pid);
+    wrefresh(consola);
+
+    wprintw(board,"Wykonaj ruch");
     while(1) {
-//        move(pdata,my_id,sem);
-//        if(pdata->payload == 'q')break;
+        make_move(pdata,my_id,sem);
+        wrefresh(board);
+        if(pdata->payload == 'q')break;
 //        sem_post(sem);
-//    printf("odpowiedz servera: %s\n",pdata->map);
+//        printf("odpowiedz servera: \n");
     }
     sem_close(sem);
     munmap(pdata, sizeof(struct data_t));
     close(fd);
     return 0;
+}
+
+int check_map(int x,int y){
+
+}
+
+void client_map(){
+//    MAP_FILE
+}
+
+void make_move(struct data_t* pdata, int my_id, sem_t* sem){
+
+
+        char move = 'x';
+
+
+        while(move != 'a' && move != 's' && move != 'd' && move != 'w' && move != 'q') {
+            move = getchar();
+        }
+        sem_wait(&pdata->take);
+        pdata->payload = move;
+        pdata->id = my_id;
+        sem_post(&pdata->cs);
+        sem_post(sem);
+}
+
+void take(struct data_t* pdata,sem_t* sem,int turn){
+    sem_wait(sem);
+    sem_wait(&pdata->cs);
+//    printf("turn: %d player_id: %03d: move:%c\n", turn, pdata->id, pdata->payload);
+    wprintw(consola,"turn: %d player_id: %03d: move:%c\n", turn, pdata->id, pdata->payload);
+    wrefresh(consola);
+    sem_post(&pdata->take);
 }
 
 //int printl(WINDOW *win,const char* fmt, ...)
