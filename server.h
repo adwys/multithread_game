@@ -49,6 +49,7 @@ struct client_data_t {
     unsigned int saved_coins;
     char curr_square;
     int deaths;
+    char look;
     bool campsite_known;
     bool in_bush;
     bool bot; // server ustawia bestie, trzeba jeszcze zrobic arg w treadzie kileta

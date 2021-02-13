@@ -63,22 +63,26 @@ void *server_thr(){
         }
         if(curr >= 2)break;
     }
-
+    //BEAST THREAD
+    pthread_t beast_thr;
+    sem_post(&pdata->cl_wait);
+    pthread_create(&beast_thr,NULL,client_thr,NULL);
+    sem_wait(&pdata->cl_ready);
     wprintw(consola,"Game Start\n");
     wrefresh(consola);
-    for(int i=0;i<2;i++){
+    for(int i=0;i<3;i++){
         sem_init(&pdata->client[i].request,1,0);
     }
-    for(int x=0;x<2;x++)sem_post(&pdata->server_run);
+    for(int x=0;x<3;x++)sem_post(&pdata->server_run);
     pdata->server_ready=true;
     while(pdata->server_ready){
-        for(int i=0;i<2;i++){
+        for(int i=0;i<3;i++){
             sem_post(&pdata->client[i].request);
             sleep(0.5);
             if(pdata->client[i].input == 'a' || pdata->client[i].input == 'w' || pdata->client[i].input == 's' || pdata->client[i].input == 'd'){
                 change_cords(&pdata->client[i],pdata);
                 player_update(&pdata,&pdata->client[i]);
-                client_map(&pdata,i);
+                if(i!=2)client_map(&pdata,i);
             }
 
         }
@@ -114,8 +118,8 @@ bool square_action(struct client_data_t *cdata,struct server_data_t* pdata,int x
         cdata->coins_in_backpack=0;
         return true;
     }
-    wprintw(consola,"square_action error");
-    wrefresh(consola);
+//    wprintw(consola,"square_action error");
+//    wrefresh(consola);
     return false;
 }
 int change_cords(struct client_data_t *cdata, struct server_data_t* pdata){
@@ -156,18 +160,18 @@ int load_map(struct server_data_t* pdata){
     return 0;
 }
 
-int player_update(struct server_data_t** pdata,struct client_data_t* cdata){ //TODO jak wchodzi na rzeczy zeby ich nie usuwało
+int player_update(struct server_data_t** pdata,struct client_data_t* cdata){
 //    if(!check_map(cdata->x,cdata->y,*pdata))return -1;
     for(int i=0;i<26;i++){
         for(int j=0;j<55;j++){
-            if((*pdata)->map[i][j] == cdata->num + '0'){
+            if((*pdata)->map[i][j] == cdata->look){
                 if(cdata->curr_square == 'c' || cdata->curr_square == 't' || cdata->curr_square == 'T')cdata->curr_square=' ';
                 (*pdata)->map[i][j] = cdata->curr_square;
             }
         }
     }
     cdata->curr_square = (*pdata)->map[cdata->y][cdata->x];
-    (*pdata)->map[cdata->y][cdata->x] = cdata->num + '0';
+    (*pdata)->map[cdata->y][cdata->x] = cdata->look;
 
     return 0;
 }
@@ -175,22 +179,20 @@ int player_create(struct client_data_t* cdata,struct server_data_t* pdata,int cl
     srand(time(0));
     int my_id = rand() % 1000;
     int player_x,player_y;
-    player_x = rand() % 50;
-    player_y = rand() % 25;
     do{
         player_x = rand() % 50;
         player_y = rand() % 25;
     }while(!check_map(player_x,player_y,pdata));
     cdata->curr_square=' ';
     cdata->in_bush=false;
+    cdata->look = cdata->num + '0';
+    if(cdata->bot)cdata->look = '*';
     cdata->campsite_known=false;
     cdata->cmp_x=0;
     cdata->cmp_y=0;
     cdata->deaths=0;
     cdata->coins_in_backpack=0;
     cdata->saved_coins=0;
-    wprintw(consola,"tworzenie gracza nr=%d pid=%d x=%d y=%d\n",cl,getpid(),player_x,player_y);
-    wrefresh(consola);
     cdata->x=player_x;
     cdata->y=player_y;
     cdata->num=cl;
@@ -233,6 +235,8 @@ void *client_thr(){
 
     //create client data
     sem_wait(&pdata->cl_wait);
+    pdata->client[pdata->clients].bot= pdata->clients==2 ? true:false;
+    bool bot_thr = pdata->client[pdata->clients].bot;
     player_create(&pdata->client[pdata->clients],pdata,pdata->clients);
     pdata->clients++;
     sem_post(&pdata->cl_ready);
@@ -240,28 +244,56 @@ void *client_thr(){
     wrefresh(consola);
     while(!pdata->server_ready); // czekanie na rozpoczecie gry
     int cl = find_client(pdata,getpid());
+    if(bot_thr)cl = 2;
     if(cl == -1){
         wprintw(board,"ERROR");
         wrefresh(board);
         return NULL;
     }
     player_update(&pdata,&pdata->client[cl]);
-    client_map(&pdata,cl);
-    wprintw(consola,"gracz nr=%d pos x=%d y=%d\n",cl,pdata->client[cl].x,pdata->client[cl].y);
-    wrefresh(consola);
+    if(!pdata->client[cl].bot)client_map(&pdata,cl);
+//    wprintw(consola,"gracz nr=%d pos x=%d y=%d\n",cl,pdata->client[cl].x,pdata->client[cl].y);
+//    wrefresh(consola);
     pdata->client[cl].exit_request=false;
     pthread_t cl_input;
-    pthread_create(&cl_input,NULL,&player_input_thr,&pdata->client[cl]);
-    sem_wait(&pdata->server_run);
-    ledger = newwin(100, 60, 0, 40);
+    if(!pdata->client[cl].bot)pthread_create(&cl_input,NULL,&player_input_thr,&pdata->client[cl]);
+//    sem_wait(&pdata->server_run);
+    if(!pdata->client[cl].bot)ledger = newwin(100, 60, 0, 40);
+    srand(time(0));
     while(pdata->server_ready) {
-        for(int i=0;i<5;i++){
-            wprintw(board,"%s\n",pdata->client[cl].map[i]);
-            wrefresh(board);
+        if(bot_thr){
+            int beast_mov = rand() % 100;
+            if(beast_mov<25){
+                pdata->client[cl].input='a';
+            }
+            else if(beast_mov<50){
+                pdata->client[cl].input='d';
+            }
+            else if(beast_mov<75){
+                pdata->client[cl].input='w';
+            }
+            else{
+                pdata->client[cl].input='s';
+            }
+            struct timespec time;
+            clock_gettime(CLOCK_REALTIME, &time);
+            time.tv_sec += 60;
+            sem_timedwait(&pdata->client[2].request, &time);
+            if(pdata->client[2].in_bush){
+                sleep(1);
+                pdata->client[2].in_bush=false;
+            }
+//            sleep(1);
         }
-        wclear(board);
-        display_ledger(&pdata->client[cl],pdata->pid);
-        wclear(ledger);
+        else {
+            for (int i = 0; i < 5; i++) {
+                wprintw(board, "%s\n", pdata->client[cl].map[i]);
+                wrefresh(board);
+            }
+            wclear(board);
+            display_ledger(&pdata->client[cl], pdata->pid);
+            wclear(ledger);
+        }
         sleep(1);
     }
     wprintw(consola,"EXIT");
