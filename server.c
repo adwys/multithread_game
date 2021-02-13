@@ -147,8 +147,7 @@ bool square_action(struct client_data_t *cdata,struct server_data_t* pdata,int x
         cdata->cmp_y=cdata->y+y;
         return true;
     }
-//    wprintw(consola,"square_action error");
-//    wrefresh(consola);
+
     return false;
 }
 int change_cords(struct client_data_t *cdata, struct server_data_t* pdata){
