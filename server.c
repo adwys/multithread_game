@@ -93,9 +93,35 @@ void *server_thr(){
 
     return NULL;
 }
+int find_player_byxy(int x,int y,struct server_data_t *pdata){
+    for(int i=0;i<2;i++){
+        if(pdata->client[i].x == x && pdata->client[i].y == y)return i;
+    }
+    return -1;
+}
+void kill_player(struct client_data_t *cdata){
+    //11 24
+    cdata->x = 24;
+    cdata->y = 11;
+    cdata->deaths++;
+    cdata->coins_in_backpack=0;
+    cdata->curr_square='A';
+}
 bool square_action(struct client_data_t *cdata,struct server_data_t* pdata,int x,int y){
     if(check_place(cdata->x+x,cdata->y+y,pdata) == empty) {
         return true;
+    }
+    if(check_place(cdata->x+x,cdata->y+y,pdata) == player) {
+        if(cdata->bot){
+            int player_cl = find_player_byxy(cdata->x,cdata->y,pdata);
+            if(player_cl!=-1)kill_player(&pdata->client[player_cl]);
+            return true;
+        }
+        return false;
+    }
+    if(check_place(cdata->x+x,cdata->y+y,pdata) == beast) {
+        kill_player(cdata);
+        return false;
     }
     if(check_place(cdata->x+x,cdata->y+y,pdata) == coin){
         cdata->coins_in_backpack+=1;
@@ -116,6 +142,9 @@ bool square_action(struct client_data_t *cdata,struct server_data_t* pdata,int x
     if(check_place(cdata->x+x,cdata->y+y,pdata) == camp){
         cdata->saved_coins=cdata->coins_in_backpack;
         cdata->coins_in_backpack=0;
+        cdata->campsite_known=true;
+        cdata->cmp_x=cdata->x+x;
+        cdata->cmp_y=cdata->y+y;
         return true;
     }
 //    wprintw(consola,"square_action error");
@@ -358,7 +387,8 @@ enum squares check_place(int x,int y, struct server_data_t* pdata){
     if(pdata->map[y][x] == 'c')return coin;
     if(pdata->map[y][x] == 't')return treasure;
     if(pdata->map[y][x] == 'T')return big_treasure;
-
+    if(pdata->map[y][x] == '1' || pdata->map[y][x] == '0')return player;
+    if(pdata->map[y][x] == '*')return beast;
 
 }
 

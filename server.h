@@ -77,8 +77,9 @@ static void err(int c, const char* msg) {
     perror(msg);
     exit(1);
 };
+int find_player_byxy(int x,int y,struct server_data_t *pdata);
 void display_ledger(struct client_data_t *cdata,int server_pid);
-enum squares{wall,empty,bush,coin,treasure,big_treasure,camp};
+enum squares{wall,empty,bush,coin,treasure,big_treasure,camp,beast,player};
 enum squares check_place(int x,int y, struct server_data_t* pdata);
 bool bush_wait(struct client_data_t* cdata);
 bool square_action(struct client_data_t *cdata,struct server_data_t* pdata,int x,int y);
