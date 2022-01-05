@@ -1,4 +1,3 @@
-//#include "include.h"
 #include "server.h"
 
 
@@ -100,7 +99,6 @@ int find_player_byxy(int x,int y,struct server_data_t *pdata){
     return -1;
 }
 void kill_player(struct client_data_t *cdata){
-    //11 24
     cdata->x = 24;
     cdata->y = 11;
     cdata->deaths++;
@@ -189,7 +187,6 @@ int load_map(struct server_data_t* pdata){
 }
 
 int player_update(struct server_data_t** pdata,struct client_data_t* cdata){
-//    if(!check_map(cdata->x,cdata->y,*pdata))return -1;
     for(int i=0;i<26;i++){
         for(int j=0;j<55;j++){
             if((*pdata)->map[i][j] == cdata->look){
@@ -280,12 +277,9 @@ void *client_thr(){
     }
     player_update(&pdata,&pdata->client[cl]);
     if(!pdata->client[cl].bot)client_map(&pdata,cl);
-//    wprintw(consola,"gracz nr=%d pos x=%d y=%d\n",cl,pdata->client[cl].x,pdata->client[cl].y);
-//    wrefresh(consola);
     pdata->client[cl].exit_request=false;
     pthread_t cl_input;
     if(!pdata->client[cl].bot)pthread_create(&cl_input,NULL,&player_input_thr,&pdata->client[cl]);
-//    sem_wait(&pdata->server_run);
     if(!pdata->client[cl].bot)ledger = newwin(100, 60, 0, 40);
     srand(time(0));
     while(pdata->server_ready) {
@@ -311,7 +305,6 @@ void *client_thr(){
                 sleep(1);
                 pdata->client[2].in_bush=false;
             }
-//            sleep(1);
         }
         else {
             for (int i = 0; i < 5; i++) {
@@ -331,10 +324,9 @@ void *client_thr(){
     close(fd);
     wclear(board);
     wclear(consola);
-//    pthread_exit(NULL);
     return NULL;
 }
-bool bush_wait(struct client_data_t* cdata){ // NIE UZYWAC
+bool bush_wait(struct client_data_t* cdata){
     if(cdata->input == 'a'){
         if(cdata->map[cdata->y][cdata->x-1] == '#')return true;
     }
@@ -358,7 +350,6 @@ void *player_input_thr(void * arg){
     while(move != 'q'){
         move = getch();
         cdata->input = move;
-//        sem_post(&cdata->ready); // NIE POTRZEBNE
         struct timespec time;
         clock_gettime(CLOCK_REALTIME, &time);
         time.tv_sec += 60;
@@ -371,7 +362,6 @@ void *player_input_thr(void * arg){
     cdata->exit_request=true;
     pthread_exit(NULL);
 }
-// NIE uzywane
 int take_player_input(struct server_data_t* pdata,int cl){
     struct timespec time;
     clock_gettime(CLOCK_REALTIME,&time);
@@ -391,15 +381,13 @@ enum squares check_place(int x,int y, struct server_data_t* pdata){
 
 }
 
-int check_map(int x,int y,struct server_data_t* pdata){ // NIE UZYWAC
+int check_map(int x,int y,struct server_data_t* pdata){
 
     if(pdata->map[y][x] == ' ')return 1;
     return 0;
 }
 
 void client_map(struct server_data_t** pdata,int clinet){
-
-    //  / trzeba tez zrobic w  koncu input graczy / bestie i reszte gry
     int x = (*pdata)->client[clinet].x>=5 ? (*pdata)->client[clinet].x-3:0;
     int y = (*pdata)->client[clinet].y>=5 ? (*pdata)->client[clinet].y-3:0;
 

@@ -52,7 +52,7 @@ struct client_data_t {
     char look;
     bool campsite_known;
     bool in_bush;
-    bool bot; // server ustawia bestie, trzeba jeszcze zrobic arg w treadzie kileta
+    bool bot;
     bool exit_request;
     char map[6][6];
 };
